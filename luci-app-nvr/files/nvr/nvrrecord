@@ -21,13 +21,20 @@ function main() {
 		elif [ "$_source" = "multiple-types" ];then
 			_input="$a"
 		fi
-		thename="$(date +%Y-%m-%d-%H:%M:%S)"
+		#测试分区是否是fat分区
+		_disk_type=$(df -T "${_directory}" | awk '{print $2}' | head -n 2 | tail -n +2)
+		if echo "$_disk_type" | grep -iq "fat"; then
+			thename="$(date +%Y-%m-%d-%H-%M-%S)" #fat分区名字不能带冒号,否则无法创建文件
+		else
+			thename="$(date +%Y-%m-%d-%H:%M:%S)"
+		fi		
 		# 屏蔽强行结束功能，会导致录制的MP4视频无法播放。
 		#if [ ! -f "${_directory}/${theday}/${thedir}/${thename}.*" ];then
 		#	kill -9 "$(ps -w | grep ffmpeg | grep "${_input}" | grep -v grep | grep -v "\-f flv")"
 		#fi
 
 		if [ "$_enable_audio" -eq 1 ];then
+			ffmpeg -i "${_input}" -c copy -c:a aac -t ${_rec_time} "${_directory}/${theday}/${thedir}/${thename}.mp4" &
 			# 采用mp4有声录制。
 			ffmpeg -i "${_input}" -c copy -t ${_rec_time} "${_directory}/${theday}/${thedir}/${thename}.mp4" &
 		else
