@@ -4,13 +4,13 @@ XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "services", "nvr", "status")%
 		var tb = document.getElementById('nvr_status');
 		if ( data && tb) {
 			if ( data.nvrrecord && data.pushpid ) {
-				tb.innerHTML = '<font color=green><%:正在录像！%><%: PID: %>' + data.nvrrecord + '</br>' +'<%:正在推流！%><%: PID : %>' + data.pushpid + '</font>';
+				tb.innerHTML = '<font color=green><%:Recording!%><%: PID: %>' + data.nvrrecord + '</br>' +'<%:Pushing stream!%><%: PID : %>' + data.pushpid + '</font>';
 			} else if ( data.nvrrecord ) {
-				tb.innerHTML = '<font color=green><%:正在录像！%><%: PID: %>' + data.nvrrecord + '</font></br>' + '<font color=red><%:未推送！!%></font>';
+				tb.innerHTML = '<font color=green><%:Recording!%><%: PID: %>' + data.nvrrecord + '</font></br>' + '<font color=red><%:Not pushing!%></font>';
 			} else if ( data.pushpid ) {
-				tb.innerHTML = '<font color=red><%:未录像！%></font></br>' + '<font color=green><%:正在推流！%><%: PID: %>' + data.pushpid + '</font>';
+				tb.innerHTML = '<font color=red><%:Not recording!%></font></br>' + '<font color=green><%:Pushing stream!%><%: PID: %>' + data.pushpid + '</font>';
 			} else {
-				tb.innerHTML = '<font color=red><%:未运行！%></font>';
+				tb.innerHTML = '<font color=red><%:Not running!%></font>';
 			}
 		}
 	}

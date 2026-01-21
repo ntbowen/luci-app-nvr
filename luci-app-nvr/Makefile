@@ -2,30 +2,26 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-nvr
 PKG_VERSION:=20230818
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
-include $(INCLUDE_DIR)/package.mk
+LUCI_TITLE:=LuCI Support for Network Video Recorder
+LUCI_DESCRIPTION:=A LuCI application for network video recording using IP cameras.
+LUCI_DEPENDS:=+luci-base +ffmpeg
+LUCI_PKGARCH:=all
 
-define Package/luci-app-nvr
- 	SECTION:=luci
-	CATEGORY:=LuCI
-	SUBMENU:=3. Applications
-	TITLE:=LuCI Support for Network Video Recorder
-	PKGARCH:=all
-	DEPENDS:=+ffmpeg
-endef
+include $(TOPDIR)/feeds/luci/luci.mk
 
-define Build/Prepare
-	$(foreach po,$(wildcard ${CURDIR}/luasrc/i18n/*.po), \
-		po2lmo $(po) $(PKG_BUILD_DIR)/$(patsubst %.po,%.lmo,$(notdir $(po)));)
-endef
-
-define Build/Compile
+define Package/luci-app-nvr/conffiles
+/etc/config/nvr
 endef
 
 define Package/luci-app-nvr/install
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
-	cp -pR ./luasrc/* $(1)/usr/lib/lua/luci
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view
+	$(INSTALL_DATA) ./luasrc/controller/nvr.lua $(1)/usr/lib/lua/luci/controller/
+	$(INSTALL_DATA) ./luasrc/model/cbi/nvr.lua $(1)/usr/lib/lua/luci/model/cbi/
+	$(INSTALL_DATA) ./luasrc/view/nvr_status.htm $(1)/usr/lib/lua/luci/view/
 	$(INSTALL_DIR) $(1)/usr/nvr
 	$(INSTALL_BIN) ./files/nvr/* $(1)/usr/nvr
 	$(INSTALL_DIR) $(1)/etc/config
