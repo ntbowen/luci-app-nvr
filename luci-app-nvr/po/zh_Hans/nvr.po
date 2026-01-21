@@ -1,5 +1,12 @@
+# Chinese (Simplified) translation for luci-app-nvr
+# Copyright (C) 2024
+# This file is distributed under the same license as the luci-app-nvr package.
+#
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8\n"
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_Hans\n"
 
 msgid "NVR"
 msgstr "网络视频录像机"
@@ -21,6 +28,9 @@ msgstr "摄像机源"
 
 msgid "hikvision"
 msgstr "海康威视"
+
+msgid "tplink"
+msgstr "TP-Link"
 
 msgid "rtmp url"
 msgstr "rtmp视频源url"
@@ -57,6 +67,9 @@ msgstr "摄像机密码"
 
 msgid "rtmp url address"
 msgstr "rtmp视频源url地址"
+
+msgid "information"
+msgstr "信息"
 
 msgid "hikvision: rtsp://username:password@ip:554/h264/ch1/main/av_stream"
 msgstr "海康威视监控url视频源格式: rtsp://username:password@ip:554/h264/ch1/main/av_stream"
@@ -124,3 +137,20 @@ msgstr "一键推流"
 msgid "One-click STOP Push"
 msgstr "一键停止推流"
 
+msgid "Recording!"
+msgstr "正在录像！"
+
+msgid "Pushing stream!"
+msgstr "正在推流！"
+
+msgid "Not pushing!"
+msgstr "未推送！"
+
+msgid "Not recording!"
+msgstr "未录像！"
+
+msgid "Not running!"
+msgstr "未运行！"
+
+msgid "Collecting data..."
+msgstr "正在收集数据..."
