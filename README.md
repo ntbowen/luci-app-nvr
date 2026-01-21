@@ -55,77 +55,9 @@
 	
 三、luci-app-nvr BUG手动修复
 
-	1、直接下载修复文件 https://x.x.x.x/luci-app-nvr_fixpacth.tar.gz. 
-	
-	在 [系统] -->  [备份与升级] --> [上传备份】直接恢复。
-	
-	或者
-	
 	ssh 连接到 istoreOS .
-	
-	编辑文件 vim /usr/nvr/nvrrecord 
-	
-	替换内容为下面的代码
-
-	--------------------------
-	#!/bin/sh
-. /usr/nvr/nvrcommon
-
-function main() {
-	test_totaldays
-	test_loopwrite
-	i=1 # 用数字通道号做路径，非常好。
-	for a in $_all_clients;do
-		theday="$(date +%Y-%m-%d)"
-		#thedir=$(echo $a | sed 's/\///g') #这个做路径非常不友好
-		thedir=${i} # 通道名目录
-		if [ ! -d "$_directory/$theday/$thedir" ];then
-			mkdir -p "$_directory/$theday/$thedir"
-		fi
-		if [ "$_source" = "hikvision" ];then
-			_input="rtsp://${_hik_user}:${_hik_pass}@${a}:554/h264/ch1/main/av_stream"
-		elif [ "$_source" = "tplink" ];then
-			_input="rtsp://${_tplink_user}:${_tplink_pass}@${a}:554/stream1"
-		elif [ "$_source" = "rtmp-url" ];then
-			_input="$a"
-		elif [ "$_source" = "multiple-types" ];then
-			_input="$a"
-		fi
-		#测试分区是否是fat分区
-		_disk_type=$(df -T "${_directory}" | awk '{print $2}' | head -n 2 | tail -n +2)
-		if echo "$_disk_type" | grep -iq "fat"; then
-			thename="$(date +%Y-%m-%d-%H-%M-%S)" #fat分区名字不能带冒号,否则无法创建文件
-		else
-			thename="$(date +%Y-%m-%d-%H:%M:%S)"
-		fi		
-		# 屏蔽强行结束功能，会导致录制的MP4视频无法播放。
-		#if [ ! -f "${_directory}/${theday}/${thedir}/${thename}.*" ];then
-		#	kill -9 "$(ps -w | grep ffmpeg | grep "${_input}" | grep -v grep | grep -v "\-f flv")"
-		#fi
-
-		if [ "$_enable_audio" -eq 1 ];then
-			ffmpeg -i "${_input}" -c copy -c:a aac -t ${_rec_time} "${_directory}/${theday}/${thedir}/${thename}.mp4" &
-			# 采用mp4有声录制。
-			ffmpeg -i "${_input}" -c copy -t ${_rec_time} "${_directory}/${theday}/${thedir}/${thename}.mp4" &
-		else
-			# 采用mp4无声录制。
-			ffmpeg -i "${_input}" -c copy -an -t ${_rec_time} "${_directory}/${theday}/${thedir}/${thename}.mp4" &
-		fi
-		i=$((i + 1))
-	done
-	sleep $(expr ${_rec_time} - 3)
-}
-
-while true;do
-	detect_disk
-	if [ "${_disk}" = "" ];then
-		main
-	else
-		sleep 10
-	fi
-done
-
-	----------------------------------------
+		
+	替换文件 /usr/nvr/nvrrecord 	为项目中的 nvrrecord 文件。
 
 	原始代码在循环录制的过程中，强制停止了ffmpeg，视频文件不完整的情况mp4格式无法正常播放(mkv不受影响，但移动端支持不好，不推荐使用)。
 	原始代码使用通道完整URL做目录名，导致路径过长，一些情况下无法播放。也不方便查阅。
