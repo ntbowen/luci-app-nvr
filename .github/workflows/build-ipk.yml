@@ -19,25 +19,25 @@ jobs:
 
       - name: Compile IPK
         run: |
-          # 1. 下载 SDK
+          # 1. 下载 SDK 并创建独立的 sdk 目录
           wget https://downloads.openwrt.org/releases/23.05.0/targets/x86/64/openwrt-sdk-23.05.0-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          mkdir sdk_env
+          tar xJf openwrt-sdk-*.tar.xz -C sdk_env --strip-components=1
           
-          # 2. 创建 sdk 目录并解压内容（丢弃原始长文件夹名）
-          mkdir sdk
-          tar xJf openwrt-sdk-*.tar.xz -C sdk --strip-components=1
+          # 2. 创建插件目录
+          mkdir -p sdk_env/package/luci-app-nvr
           
-          # 3. 将你的项目代码放入 SDK
-          mkdir -p sdk/package/luci-app-nvr
-          cp -r ./* sdk/package/luci-app-nvr/
-          # 排除 sdk 目录自身，防止无限嵌套
-          rm -rf sdk/package/luci-app-nvr/sdk
+          # 3. 精准拷贝项目文件（避开刚刚生成的 sdk_env 目录）
+          # 只拷贝 files, luci-static, po, Makefile 等核心文件
+          [ -d files ] && cp -r files sdk_env/package/luci-app-nvr/
+          [ -d luci-static ] && cp -r luci-static sdk_env/package/luci-app-nvr/
+          [ -d po ] && cp -r po sdk_env/package/luci-app-nvr/
+          [ -f Makefile ] && cp Makefile sdk_env/package/luci-app-nvr/
           
-          # 4. 进入 SDK 目录编译
-          cd sdk
-          # 更新 Feeds (确保基础依赖可用)
+          # 4. 进入 SDK 环境编译
+          cd sdk_env
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          # 配置并编译
           make defconfig
           make package/luci-app-nvr/compile V=s
 
@@ -45,5 +45,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-nvr-ipk
-          path: |
-            sdk/bin/packages/x86_64/**/luci-app-nvr*.ipk
+          path: sdk_env/bin/packages/x86_64/**/luci-app-nvr*.ipk
