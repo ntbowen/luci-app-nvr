@@ -21,7 +21,7 @@ jobs:
 
       - name: Compile IPK
         run: |
-          # 1. 下载并解压官方 25.12.0-rc2 SDK
+          # 1. 下载并解压最新的 OpenWrt 25.12.0-rc2 SDK
           SDK_URL="https://archive.openwrt.org/releases/25.12.0-rc2/targets/x86/64/openwrt-sdk-25.12.0-rc2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
           wget -q $SDK_URL
           mkdir sdk_env
@@ -29,33 +29,32 @@ jobs:
           tar xf sdk.tar -C sdk_env --strip-components=1
           rm sdk.tar
           
-          # 2. 创建插件目录
+          # 2. 准备插件源码目录
           PKG_DIR="sdk_env/package/luci-app-nvr"
           mkdir -p "$PKG_DIR"
           
-          # 3. 解决 "cannot stat" 问题的核心逻辑：手动建立目录结构
-          # 强制将 files 里的内容平铺到插件根目录，确保 Makefile 里的相对路径有效
+          # 3. 【核心修正】路径对齐逻辑
+          # 将 files 文件夹内的所有内容（luasrc, nvr文件夹, nvr.init等）平铺拷贝到 PKG_DIR
+          # 这样 Makefile 里的 ./luasrc 和 ./nvr.init 路径就能匹配上了
           if [ -d "files" ]; then
             cp -r files/* "$PKG_DIR/"
           fi
           
-          # 确保根目录的 Makefile 被拷贝
+          # 拷贝根目录的 Makefile 和 po 翻译文件夹（如果有）
           cp Makefile "$PKG_DIR/"
-          
-          # 拷贝其他可能存在的资源目录
-          [ -d luci-static ] && cp -r luci-static "$PKG_DIR/"
           [ -d po ] && cp -r po "$PKG_DIR/"
           
-          # 调试：打印目录结构，确保 luasrc 就在 PKG_DIR 这一层
-          echo "Debug: Listing package directory structure..."
+          # 打印目录结构，用于在日志中查错
+          echo "==== Debug: Package Directory Structure ===="
           ls -R "$PKG_DIR"
+          echo "=========================================="
           
-          # 4. 编译流程
+          # 4. 执行编译流程
           cd sdk_env
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           make defconfig
-          # 使用多线程编译并输出详细日志
+          # 使用多线程编译，并输出详细日志 (V=s)
           make package/luci-app-nvr/compile -j$(nproc) V=s
 
       - name: Upload Artifacts
