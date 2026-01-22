@@ -1,35 +1,21 @@
-name: Build Luci App NVR IPK
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [ "main" ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Initialization environment
+- name: Compile IPK
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget unzip
-          
-      - name: Compile IPK
-        run: |
-          # 下载 OpenWrt SDK (以 x86_64 为例)
+          # 1. 下载并解压 SDK
           wget https://downloads.openwrt.org/releases/23.05.0/targets/x86/64/openwrt-sdk-23.05.0-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar xJf openwrt-sdk-*.tar.xz
-          cd openwrt-sdk-*
           
-          # 添加你的代码作为 feed
-          mkdir -p package/luci-app-nvr
-          cp -r ../* package/luci-app-nvr/
+          # 2. 获取解压后的文件夹确切名称，避免 cd 报错
+          SDK_DIR=$(ls -d openwrt-sdk-*)
           
-          # 配置并编译
+          # 3. 将你的项目代码拷贝进 SDK
+          mkdir -p "$SDK_DIR/package/luci-app-nvr"
+          # 排除 SDK 自身文件夹，拷贝其他所有内容
+          find . -maxdepth 1 ! -name "$SDK_DIR" ! -name "*.tar.xz" ! -name "." -exec cp -r {} "$SDK_DIR/package/luci-app-nvr/" \;
+          
+          # 4. 进入 SDK 目录进行编译
+          cd "$SDK_DIR"
           make defconfig
+          # V=s 可以看到详细报错日志
           make package/luci-app-nvr/compile V=s
 
       - name: Upload Artifacts
