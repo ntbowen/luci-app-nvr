@@ -1,4 +1,4 @@
-name: Build Luci App NVR IPK (25.12.0-rc2 Official)
+name: Build Luci App NVR IPK (25.12.0-rc2)
 
 on:
   workflow_dispatch:
@@ -15,50 +15,56 @@ jobs:
       - name: Initialization environment
         run: |
           sudo apt-get update
-          # 安装编译必需依赖及 zstd (处理官方新 SDK 格式)
           sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget unzip zstd
           sudo -E apt-get -y autoremove --purge
           sudo -E apt-get clean
 
       - name: Compile IPK
         run: |
-          # 1. 下载官方 25.12.0-rc2 x86-64 SDK
+          # 1. 下载并解压 SDK
           SDK_URL="https://archive.openwrt.org/releases/25.12.0-rc2/targets/x86/64/openwrt-sdk-25.12.0-rc2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
           wget -q $SDK_URL
-          
-          # 2. 解压 SDK 并重命名为固定的 sdk_env
           mkdir sdk_env
           zstd -d openwrt-sdk-*.tar.zst -o sdk.tar
           tar xf sdk.tar -C sdk_env --strip-components=1
           rm sdk.tar
           
-          # 3. 准备项目目录
+          # 2. 创建插件目录
           PKG_DIR="sdk_env/package/luci-app-nvr"
           mkdir -p "$PKG_DIR"
           
-          # 4. 路径对齐修正：将 files 内部的内容提取到插件根目录
-          # 这样编译时，luasrc 和 root 文件夹就会出现在正确的位置
-          if [ -d files ]; then
-            cp -r files/* "$PKG_DIR/"
+          # 3. 【核心修正】精准路径对齐
+          # 不再使用通配符，而是根据报错信息手动对齐目录
+          # 如果你的 luasrc 文件夹在项目根目录下的 files 文件夹里：
+          if [ -d "files/luasrc" ]; then
+            cp -r files/luasrc "$PKG_DIR/"
           fi
           
-          # 拷贝其他核心文件
+          # 如果你的 root 文件夹在 files 文件夹里：
+          if [ -d "files/root" ]; then
+            cp -r files/root "$PKG_DIR/"
+          fi
+          
+          # 拷贝 Makefile (这是编译的灵魂)
+          cp Makefile "$PKG_DIR/"
+          
+          # 拷贝其他可能存在的必要目录
           [ -d luci-static ] && cp -r luci-static "$PKG_DIR/"
           [ -d po ] && cp -r po "$PKG_DIR/"
-          [ -f Makefile ] && cp Makefile "$PKG_DIR/"
           
-          # 5. 开始编译流程
+          # 4. 验证路径 (这一步会在日志中打印，方便我们查错)
+          echo "Checking directory structure in SDK:"
+          ls -R "$PKG_DIR"
+          
+          # 5. 执行编译
           cd sdk_env
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          
           make defconfig
-          # 使用多线程加速编译并开启详细日志
           make package/luci-app-nvr/compile -j$(nproc) V=s
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: upload-artifact@v4
         with:
-          name: luci-app-nvr-ipk-25.12-rc2
-          path: |
-            sdk_env/bin/packages/x86_64/**/luci-app-nvr*.ipk
+          name: luci-app-nvr-ipk
+          path: sdk_env/bin/packages/x86_64/**/luci-app-nvr*.ipk
