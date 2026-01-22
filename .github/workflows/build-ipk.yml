@@ -21,7 +21,7 @@ jobs:
 
       - name: Compile IPK
         run: |
-          # 1. 下载并解压 SDK
+          # 1. 下载并解压官方 25.12.0-rc2 SDK
           SDK_URL="https://archive.openwrt.org/releases/25.12.0-rc2/targets/x86/64/openwrt-sdk-25.12.0-rc2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
           wget -q $SDK_URL
           mkdir sdk_env
@@ -33,38 +33,33 @@ jobs:
           PKG_DIR="sdk_env/package/luci-app-nvr"
           mkdir -p "$PKG_DIR"
           
-          # 3. 【核心修正】精准路径对齐
-          # 不再使用通配符，而是根据报错信息手动对齐目录
-          # 如果你的 luasrc 文件夹在项目根目录下的 files 文件夹里：
-          if [ -d "files/luasrc" ]; then
-            cp -r files/luasrc "$PKG_DIR/"
+          # 3. 解决 "cannot stat" 问题的核心逻辑：手动建立目录结构
+          # 强制将 files 里的内容平铺到插件根目录，确保 Makefile 里的相对路径有效
+          if [ -d "files" ]; then
+            cp -r files/* "$PKG_DIR/"
           fi
           
-          # 如果你的 root 文件夹在 files 文件夹里：
-          if [ -d "files/root" ]; then
-            cp -r files/root "$PKG_DIR/"
-          fi
-          
-          # 拷贝 Makefile (这是编译的灵魂)
+          # 确保根目录的 Makefile 被拷贝
           cp Makefile "$PKG_DIR/"
           
-          # 拷贝其他可能存在的必要目录
+          # 拷贝其他可能存在的资源目录
           [ -d luci-static ] && cp -r luci-static "$PKG_DIR/"
           [ -d po ] && cp -r po "$PKG_DIR/"
           
-          # 4. 验证路径 (这一步会在日志中打印，方便我们查错)
-          echo "Checking directory structure in SDK:"
+          # 调试：打印目录结构，确保 luasrc 就在 PKG_DIR 这一层
+          echo "Debug: Listing package directory structure..."
           ls -R "$PKG_DIR"
           
-          # 5. 执行编译
+          # 4. 编译流程
           cd sdk_env
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           make defconfig
+          # 使用多线程编译并输出详细日志
           make package/luci-app-nvr/compile -j$(nproc) V=s
 
       - name: Upload Artifacts
-        uses: upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
-          name: luci-app-nvr-ipk
+          name: luci-app-nvr-ipk-25.12
           path: sdk_env/bin/packages/x86_64/**/luci-app-nvr*.ipk
