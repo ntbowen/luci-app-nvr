@@ -66,4 +66,5 @@ Luci App NVR 是一款运行在 OpenWrt/iStoreOS 路由器上的轻量级监控�
 ---
 
 **作者：** onchina  
+**贡献者：** @Y-A-K-E @ntbowen
 **特别致谢：** 感谢 OpenWrt 社区及广大监控爱好者的支持与技术参考。
