@@ -11,8 +11,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: 'source-code' # 将源码存放在独立目录
 
       - name: Initialization environment
         run: |
@@ -23,7 +21,7 @@ jobs:
 
       - name: Compile IPK
         run: |
-          # 1. 下载并解压 SDK
+          # 1. 下载 SDK
           SDK_URL="https://archive.openwrt.org/releases/25.12.0-rc2/targets/x86/64/openwrt-sdk-25.12.0-rc2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
           wget -q $SDK_URL
           mkdir sdk_env
@@ -31,30 +29,34 @@ jobs:
           tar xf sdk.tar -C sdk_env --strip-components=1
           rm sdk.tar
           
-          # 2. 【核心修正】彻底平铺结构
-          # 创建一个干净的临时构建目录，让它长得完全符合 Makefile 的预期
-          mkdir -p build_flat
-          cp source-code/Makefile build_flat/
+          # 2. 【核心修正】彻底放弃软链接，使用物理拷贝平铺
+          # 直接在 SDK 的 package 目录下创建实体目录
+          mkdir -p sdk_env/package/luci-app-nvr
           
-          # 将 files 下的内容全部提取到第一层
-          if [ -d "source-code/files" ]; then
-            cp -r source-code/files/* build_flat/
+          # 拷贝 Makefile
+          cp Makefile sdk_env/package/luci-app-nvr/
+          
+          # 强力平铺：把 files 里的 luasrc, nvr 等全部直接塞进去
+          if [ -d "files" ]; then
+            cp -r files/* sdk_env/package/luci-app-nvr/
           fi
           
-          # 检查：此时 build_flat 目录下应该直接看到 luasrc 文件夹
-          echo "==== 检查构建目录结构 (必须直接看到 luasrc) ===="
-          ls -F build_flat/
+          # 3. 终极验证：如果这里 ls 不出 luasrc 文件夹，就地报错
+          cd sdk_env/package/luci-app-nvr
+          if [ ! -d "luasrc" ]; then
+            echo "错误：luasrc 目录未找到！当前目录内容如下："
+            ls -F
+            exit 1
+          fi
+          cd ../../
           
-          # 3. 将平铺后的源码映射到 SDK
-          ln -s "$(pwd)/build_flat" "sdk_env/package/luci-app-nvr"
-          
-          # 4. 执行编译
-          cd sdk_env
+          # 4. 编译
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           make defconfig
-          # 使用 V=s 打印所有 install 细节
-          make package/luci-app-nvr/compile -j1 V=s
+          # 先清理再编译，确保没有缓存干扰
+          make package/luci-app-nvr/clean
+          make package/luci-app-nvr/compile -j$(nproc) V=s
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
