@@ -19,21 +19,25 @@ jobs:
 
       - name: Compile IPK
         run: |
-          # 1. 清理环境并下载 SDK
-          rm -rf openwrt-sdk-*
+          # 1. 下载 SDK
           wget https://downloads.openwrt.org/releases/23.05.0/targets/x86/64/openwrt-sdk-23.05.0-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           
-          # 2. 解压并重命名文件夹，解决路径不确定的问题
+          # 2. 创建 sdk 目录并解压内容（丢弃原始长文件夹名）
           mkdir sdk
           tar xJf openwrt-sdk-*.tar.xz -C sdk --strip-components=1
           
-          # 3. 准备项目代码
+          # 3. 将你的项目代码放入 SDK
           mkdir -p sdk/package/luci-app-nvr
           cp -r ./* sdk/package/luci-app-nvr/
-          rm -rf sdk/package/luci-app-nvr/sdk  # 防止循环拷贝
+          # 排除 sdk 目录自身，防止无限嵌套
+          rm -rf sdk/package/luci-app-nvr/sdk
           
-          # 4. 进入固定的 sdk 目录编译
+          # 4. 进入 SDK 目录编译
           cd sdk
+          # 更新 Feeds (确保基础依赖可用)
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          # 配置并编译
           make defconfig
           make package/luci-app-nvr/compile V=s
 
@@ -42,5 +46,4 @@ jobs:
         with:
           name: luci-app-nvr-ipk
           path: |
-            openwrt-sdk-*/bin/packages/x86_64/base/luci-app-nvr*.ipk
-            openwrt-sdk-*/bin/packages/x86_64/action/luci-app-nvr*.ipk
+            sdk/bin/packages/x86_64/**/luci-app-nvr*.ipk
