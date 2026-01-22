@@ -21,7 +21,7 @@ jobs:
 
       - name: Compile IPK
         run: |
-          # 1. 下载并解压最新的 25.12.0-rc2 SDK
+          # 1. 下载并解压 SDK
           SDK_URL="https://archive.openwrt.org/releases/25.12.0-rc2/targets/x86/64/openwrt-sdk-25.12.0-rc2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
           wget -q $SDK_URL
           mkdir sdk_env
@@ -29,44 +29,43 @@ jobs:
           tar xf sdk.tar -C sdk_env --strip-components=1
           rm sdk.tar
           
-          # 2. 物理准备插件目录 (解决软链接路径混乱问题)
+          # 2. 物理准备插件目录
+          # 直接将源码平铺到 SDK 目录，确保 Makefile 中的相对路径有效
           PKG_DIR="sdk_env/package/luci-app-nvr"
           mkdir -p "$PKG_DIR"
-          
-          # 3. 路径平铺映射 (确保 Makefile 能在当前目录找到所有文件)
-          # 拷贝根目录的 Makefile
           cp Makefile "$PKG_DIR/"
-          # 拷贝根目录的 luasrc
           [ -d "luasrc" ] && cp -r luasrc "$PKG_DIR/"
-          # 平铺拷贝 files 文件夹里的所有内容 (nvr.init, nvr.conf 等)
           if [ -d "files" ]; then
             cp -r files/* "$PKG_DIR/"
           fi
-          # 拷贝翻译文件
-          [ -d po ] && cp -r po "$PKG_DIR/"
           
-          # 4. 目录结构自检 (在日志中显示，确保 luasrc 就在 PKG_DIR 这一层)
-          echo "==== 最终准备好的编译目录内容 ===="
-          ls -F "$PKG_DIR"
-          
-          # 5. 执行编译
+          # 3. 核心修正：激活编译目标
           cd sdk_env
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          make defconfig
-          # 强制清理并编译，确保生成最新的 IPK
-          make package/luci-app-nvr/clean
-          make package/luci-app-nvr/compile -j$(nproc) V=s
           
-          # 6. 【核心修复】定位生成的 IPK 到底在哪里
-          echo "==== 正在全盘搜索生成的 IPK 文件 ===="
+          # 这一步至关重要：没有这行，SDK 不会生成 .ipk 文件
+          echo "CONFIG_PACKAGE_luci-app-nvr=m" >> .config
+          
+          # 补全依赖并生成最终配置
+          make defconfig
+          
+          # 4. 执行清理并编译
+          # clean 确保删除旧的中间文件，强制触发打包流程
+          make package/luci-app-nvr/clean
+          make package/luci-app-nvr/compile V=s -j$(nproc)
+          
+          # 5. 自检：在日志中打印出所有生成的 IPK 路径
+          echo "==== 检查最终生成的 IPK 文件位置 ===="
           find bin/ -name "luci-app-nvr*.ipk"
-          echo "===================================="
+          echo "================================"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-nvr-ipk
-          # 从 sdk_env 根目录开始全盘扫描，不管它在 bin 还是在 build_dir
-          path: sdk_env/**/*.ipk 
+          name: luci-app-nvr-ipk-final
+          # 使用递归通配符搜索所有深度的子目录
+          # 这样无论文件在 bin/packages/x86_64 还是 bin/targets 下都能找到
+          path: |
+            sdk_env/bin/**/*.ipk
           if-no-files-found: error
