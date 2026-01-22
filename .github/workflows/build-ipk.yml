@@ -67,5 +67,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-nvr-ipk-25.12
-          # 修改这里：使用更广泛的匹配模式
-          path: sdk_env/bin/**/*.ipk
+          # 使用更彻底的全局递归匹配，确保只要是 bin 目录下生成的 ipk 都能抓到
+          path: |
+            sdk_env/bin/**/*.ipk
+          # 如果还是抓不到，我们可以让它报错而不是只发警告，方便调试
+          if-no-files-found: error
