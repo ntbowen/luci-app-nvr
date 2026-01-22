@@ -6,7 +6,7 @@ PKG_RELEASE:=2
 
 LUCI_TITLE:=LuCI Support for Network Video Recorder
 LUCI_DESCRIPTION:=A LuCI application for network video recording using IP cameras.
-LUCI_DEPENDS:=+luci-base +lsblk +coreutils-stat +ffmpeg-static
+LUCI_DEPENDS:=+luci-base +lsblk +coreutils-stat
 LUCI_PKGARCH:=all
 
 include $(TOPDIR)/feeds/luci/luci.mk

@@ -1,6 +1,15 @@
 #!/bin/sh
 . /usr/nvr/nvrcommon
 
+if ! ffmpeg -codecs 2>/dev/null | grep -q "D.H.264"; then
+    MSG="错误: 系统 ffmpeg 不支持 H.264。录像将无法进行！"
+    echo "$MSG"
+    # 发送到系统日志，方便用户在 iStoreOS 日志中看到
+    logger -t NVR "$MSG 请安装 ffmpeg-static 以获得支持。"
+    exit 1
+fi
+
+
 function main() {
 	test_totaldays
 	test_loopwrite
