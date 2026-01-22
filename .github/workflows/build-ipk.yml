@@ -19,7 +19,7 @@ jobs:
           sudo -E apt-get -y autoremove --purge
           sudo -E apt-get clean
 
-      - name: Compile IPK
+      - name: Compile IPK/APK
         run: |
           # 1. 下载并解压 SDK
           SDK_URL="https://archive.openwrt.org/releases/25.12.0-rc2/targets/x86/64/openwrt-sdk-25.12.0-rc2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
@@ -29,8 +29,7 @@ jobs:
           tar xf sdk.tar -C sdk_env --strip-components=1
           rm sdk.tar
           
-          # 2. 物理准备插件目录
-          # 直接将源码平铺到 SDK 目录，确保 Makefile 中的相对路径有效
+          # 2. 准备插件目录
           PKG_DIR="sdk_env/package/luci-app-nvr"
           mkdir -p "$PKG_DIR"
           cp Makefile "$PKG_DIR/"
@@ -39,33 +38,28 @@ jobs:
             cp -r files/* "$PKG_DIR/"
           fi
           
-          # 3. 核心修正：激活编译目标
+          # 3. 激活编译配置
           cd sdk_env
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          
-          # 这一步至关重要：没有这行，SDK 不会生成 .ipk 文件
           echo "CONFIG_PACKAGE_luci-app-nvr=m" >> .config
-          
-          # 补全依赖并生成最终配置
           make defconfig
           
-          # 4. 执行清理并编译
-          # clean 确保删除旧的中间文件，强制触发打包流程
+          # 4. 执行编译
           make package/luci-app-nvr/clean
           make package/luci-app-nvr/compile V=s -j$(nproc)
           
-          # 5. 自检：在日志中打印出所有生成的 IPK 路径
-          echo "==== 检查最终生成的 IPK 文件位置 ===="
-          find bin/ -name "luci-app-nvr*.ipk"
-          echo "================================"
+          # 5. 自检：搜寻 APK 和 IPK 文件
+          echo "==== 检查最终生成的安装包位置 ===="
+          find bin/ -name "*.apk" -o -name "*.ipk"
+          echo "=================================="
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-nvr-ipk-final
-          # 使用递归通配符搜索所有深度的子目录
-          # 这样无论文件在 bin/packages/x86_64 还是 bin/targets 下都能找到
+          name: luci-app-nvr-package
+          # 适配 25.12 及后续版本的 APK 格式
           path: |
+            sdk_env/bin/**/*.apk
             sdk_env/bin/**/*.ipk
           if-no-files-found: error
