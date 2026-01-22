@@ -24,17 +24,17 @@ define Package/luci-app-nvr/install
 	$(INSTALL_DATA) ./luasrc/model/cbi/nvr.lua $(1)/usr/lib/lua/luci/model/cbi/
 	$(INSTALL_DATA) ./luasrc/view/nvr_status.htm $(1)/usr/lib/lua/luci/view/
 
-	# 2. 安装系统运行文件 (从项目根部的 nvr 文件夹拷贝)
+	# 2. 安装系统运行文件
 	$(INSTALL_DIR) $(1)/usr/nvr
-	$(CP) ./nvr/* $(1)/usr/nvr/
+	$(CP) ./files/nvr/* $(1)/usr/nvr/
 
 	# 3. 安装配置文件
 	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_CONF) ./nvr.conf $(1)/etc/config/nvr
+	$(INSTALL_CONF) ./files/nvr.conf $(1)/etc/config/nvr
 
 	# 4. 安装启动脚本
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./nvr.init $(1)/etc/init.d/nvr
+	$(INSTALL_BIN) ./files/nvr.init $(1)/etc/init.d/nvr
 endef
 
 $(eval $(call BuildPackage,luci-app-nvr))
