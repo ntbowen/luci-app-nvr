@@ -1,9 +1,9 @@
-name: Build IPK
+name: Build Luci App NVR IPK
 
 on:
-  workflow_dispatch: # 允许你手动点击按钮开始编译
+  workflow_dispatch:
   push:
-    branches: [ "main" ] # 当你修改代码时自动触发
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -12,14 +12,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build IPK using SDK
-        uses: openwrt/gh-action-sdk@v1
-        env:
-          ARCH: x86_64 # 这里填你的目标平台，如 x86_64, aarch64_generic 等
-          PACKAGES: luci-app-nvr
+      - name: Initialization environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget unzip
+          
+      - name: Compile IPK
+        run: |
+          # 下载 OpenWrt SDK (以 x86_64 为例)
+          wget https://downloads.openwrt.org/releases/23.05.0/targets/x86/64/openwrt-sdk-23.05.0-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          tar xJf openwrt-sdk-*.tar.xz
+          cd openwrt-sdk-*
+          
+          # 添加你的代码作为 feed
+          mkdir -p package/luci-app-nvr
+          cp -r ../* package/luci-app-nvr/
+          
+          # 配置并编译
+          make defconfig
+          make package/luci-app-nvr/compile V=s
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-nvr-ipk
-          path: bin/packages/*/action/luci-app-nvr*.ipk
+          path: |
+            openwrt-sdk-*/bin/packages/x86_64/base/luci-app-nvr*.ipk
+            openwrt-sdk-*/bin/packages/x86_64/action/luci-app-nvr*.ipk
