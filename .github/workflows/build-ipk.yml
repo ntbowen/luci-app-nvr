@@ -67,4 +67,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-nvr-ipk-25.12
-          path: sdk_env/bin/packages/x86_64/**/luci-app-nvr*.ipk
+          # 修改这里：使用更广泛的匹配模式
+          path: sdk_env/bin/**/*.ipk
