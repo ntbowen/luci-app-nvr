@@ -66,8 +66,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-nvr-ipk-final
-          # 采用多路径模糊匹配，确保无论是在 base 还是 luci 目录都能抓到
-          path: |
-            sdk_env/bin/**/*.ipk
+          name: luci-app-nvr-ipk
+          # 从 sdk_env 根目录开始全盘扫描，不管它在 bin 还是在 build_dir
+          path: sdk_env/**/*.ipk 
           if-no-files-found: error
