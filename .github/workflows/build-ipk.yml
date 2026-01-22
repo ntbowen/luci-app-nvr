@@ -1,0 +1,25 @@
+name: Build IPK
+
+on:
+  workflow_dispatch: # 允许你手动点击按钮开始编译
+  push:
+    branches: [ "main" ] # 当你修改代码时自动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build IPK using SDK
+        uses: openwrt/gh-action-sdk@v1
+        env:
+          ARCH: x86_64 # 这里填你的目标平台，如 x86_64, aarch64_generic 等
+          PACKAGES: luci-app-nvr
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-nvr-ipk
+          path: bin/packages/*/action/luci-app-nvr*.ipk
